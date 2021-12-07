@@ -10,7 +10,7 @@ import datetime
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--units', default=128, type=float)
+    parser.add_argument('--units', default=64, type=float)
     parser.add_argument('--learning_rate', default=0.01, type=float)
     parser.add_argument('--dropout', default=0.2, type=float)
     parser.add_argument('--epochs', default=5, type=int)
