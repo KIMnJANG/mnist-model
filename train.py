@@ -11,9 +11,10 @@ import datetime
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--units', default=64, type=float)
-    parser.add_argument('--learning_rate', default=0.01, type=float)
-    parser.add_argument('--dropout', default=0.2, type=float)
-    parser.add_argument('--epochs', default=5, type=int)
+    parser.add_argument('--optimizer', default='adam', type=str)
+    # parser.add_argument('--learning_rate', default=0.01, type=float)
+    # parser.add_argument('--dropout', default=0.2, type=float)
+    # parser.add_argument('--epochs', default=5, type=int)
     parser.add_argument('--deploy', default=False, type=bool)
     return parser.parse_args()
   
@@ -39,10 +40,9 @@ def get_model(args):
   model = tf.keras.models.Sequential([
       tf.keras.layers.Flatten(input_shape=(28, 28)),
       tf.keras.layers.Dense(args.units, activation='relu'),
-      tf.keras.layers.Dropout(args.dropout),
       tf.keras.layers.Dense(10, activation='softmax')
     ])
-  model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=args.learning_rate),
+  model.compile(optimizer=args.optimizer,
                   loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
   return model
@@ -56,9 +56,9 @@ def train():
     train_x, test_x = normalize(train_x), normalize(test_x)
     
     print("Training...")
-    training_history = model.fit(train_x, train_y, validation_split=0.2, epochs=args.epochs)
+    training_history = model.fit(train_x, train_y, validation_split=0.2, epochs=10)
     
-    if args.dropout:
+    if args.deploy:
       deploy_model(model, args)
 
 def arg_to_str(args):
