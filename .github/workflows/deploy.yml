@@ -32,21 +32,19 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         buildArgs: GCS_BUCKET_ARG=${{ secrets.GCS_BUCKET }}
         addLatest: true
-
-#     - name: Setup Kustomize
-#       uses: imranismail/setup-kustomize@v1
-#     - name: Checkout mlops_mnist_config
-#       uses: actions/checkout@v2
-#       with:
-#         token: ${{ secrets.PACKAGE_REGISTRY_ACCESS_TOKEN}}
-#         repository: kimjunil/mlops_mnist_config
-#         path: mlops_mnist_config
-#     - name: Set new image tag
-#       run: |
-#         cd mlops_mnist_config/overlays/dev
-#         kustomize edit set image ghcr.io/kimjunil/mnist_classifier:${{ env.RELEASE_VERSION }}
-#         git config --global user.name ${{ github.repository_owner }}
-#         git config --global user.email "iam@junil.kim"
-#         git commit -am 'Publish new version ${{ env.RELEASE_VERSION }} to dev'
-#         git push || echo 'no changes'
-      
+    
+    - name: Checkout mlops_mnist_config
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN}}
+        repository: KIMnJANG/deploy-pipeline
+        path: deploy-pipeline
+        
+    - name: set hyper parameter
+      run: |
+        cd deploy-pipeline/kustomize/overlays/dev
+        echo $(jq '.[].value = "test"' training-job-patch.json) > training-job-patch.json
+        git config --global user.name ${{ github.repository_owner }}
+        git config --global user.email "iam@junil.kim"
+        git commit -am 'Publish new version ${GITHUB_SHA} to dev'
+        git push || echo 'no changes'
