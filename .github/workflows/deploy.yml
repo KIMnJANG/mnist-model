@@ -36,7 +36,7 @@ jobs:
     - name: Checkout mlops_mnist_config
       uses: actions/checkout@v2
       with:
-        token: ${{ secrets.GITHUB_TOKEN}}
+        token: ${{ secrets.SECRET_TOKEN}}
         repository: KIMnJANG/deploy-pipeline
         path: deploy-pipeline
         
