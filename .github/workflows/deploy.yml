@@ -23,7 +23,7 @@ jobs:
     - name: Docker Build & Push Action
       uses: mr-smithers-excellent/docker-build-push@v5.6
       with:
-        image: mnist_classifier
+        image: mnist_classifier_training
         tags: ${{ env.TAG }}
         registry: ghcr.io
         dockerfile: Dockerfile
