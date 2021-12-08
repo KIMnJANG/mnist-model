@@ -43,7 +43,7 @@ jobs:
     - name: set hyper parameter
       run: |
         cd deploy-pipeline/kustomize/overlays/dev
-        echo $(jq '.[].value = "test"' training-job-patch.json) > training-job-patch.json
+        echo $(jq '.[].value = ["--optimizer", ${{ github.event.inputs.optimizer }}, "--units", ${{ github.event.inputs.units }}]' training-job-patch.json) > training-job-patch.json
         git config --global user.name ${{ github.repository_owner }}
         git config --global user.email "iam@junil.kim"
         git commit -am 'Publish new version ${GITHUB_SHA} to dev'
