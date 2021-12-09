@@ -7,6 +7,7 @@ import dvc.api
 import os
 from tensorflow.python.lib.io import file_io
 import datetime
+from utils import request_deploy_api
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -76,6 +77,9 @@ def deploy_model(model, args):
     with file_io.FileIO(gs_path, mode='wb+') as output_file:
       output_file.write(input_file.read())
   print(f"model save success!")
+
+  request_deploy_api(gs_path)
+  print(f"Trigger Deploy success!")
 
   # slack_url = os.getenv("WEB_HOOK_URL")
   # if slack_url != None:
