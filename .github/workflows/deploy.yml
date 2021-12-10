@@ -19,7 +19,7 @@ jobs:
     - name: Set env
       run: |
         echo ${{ github.run_number }}
-        echo "TAG=`echo ${{ github.run_number }} >> $GITHUB_ENV
+        echo "TAG=`echo ${{ github.run_number }}" >> $GITHUB_ENV
         
     - name: Docker Build & Push Action
       uses: mr-smithers-excellent/docker-build-push@v5.6
