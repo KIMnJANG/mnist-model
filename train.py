@@ -43,7 +43,7 @@ def train():
     model = get_model(args)
 
     (train_x, train_y), (test_x, test_y) = load_data()
-    # train_x, test_x = normalize(train_x), normalize(test_x)
+    train_x, test_x = normalize(train_x), normalize(test_x)
 
     print("Training...")
     model.fit(train_x, train_y, validation_split=0.2, epochs=5)
