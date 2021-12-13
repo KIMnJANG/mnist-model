@@ -1,5 +1,4 @@
 from json import load
-from typing import get_args
 import tensorflow as tf
 import argparse
 import numpy as np
