@@ -46,7 +46,7 @@ def train():
     train_x, test_x = normalize(train_x), normalize(test_x)
 
     print("Training...")
-    model.fit(train_x, train_y, validation_split=0.2, epochs=10)
+    model.fit(train_x, train_y, validation_split=0.2, epochs=5)
 
     loss, acc = model.evaluate(test_x, test_y)
     print(f"model test-loss={loss:.4f} test-acc={acc:.4f}")
