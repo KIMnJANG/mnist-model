@@ -1,4 +1,4 @@
-name: cd
+name: Run Experiment Pipeline
 
 on:
   create:
@@ -49,7 +49,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          file: dockerfile
+          file: Dockerfile
           push: true
           tags: ghcr.io/${{ env.OWNER_LC}}/train-mnist:${{ env.RELEASE_VERSION}}
 
