@@ -1,52 +1,65 @@
-name: Start Deploy Pipeline
+name: cd
 
 on:
-  workflow_dispatch:
-    inputs:
-      units:
-        description: 'units'     
-        required: true
-      optimizer:
-        description: 'optimizer'     
-        required: true
-
+  create:
+    tags:
+      - "v*"
 jobs:
-
-  build:
+  image-push:
     runs-on: ubuntu-latest
+
+    env:
+      TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
     steps:
-    - uses: actions/checkout@v2
-    - name: Set env
-      run: |
-        echo ${{ github.run_number }}
-        echo "TAG=`echo ${{ github.run_number }}`" >> $GITHUB_ENV
-        
-    - name: Docker Build & Push Action
-      uses: mr-smithers-excellent/docker-build-push@v5.6
-      with:
-        image: mnist_classifier_training
-        tags: ${{ env.TAG }}
-        registry: ghcr.io
-        dockerfile: Dockerfile
-        directory: .
-        username: ${{ github.repository_owner }}
-        password: ${{ secrets.SECRET_TOKEN }}
-        buildArgs: GCS_BUCKET_ARG=${{ secrets.GCS_BUCKET }}, MODEL_TAG_ARG=${{ env.TAG }}, GITHUB_OWNER_ARG=KIMnJANG, GITHUB_REPO_ARG=deploy-pipeline, GITHUB_WORKFLOW_ARG=bentoml.yml, GITHUB_TOKEN_ARG=${{ secrets.SECRET_TOKEN}}
-        addLatest: true
-    
-    - name: Checkout mlops_mnist_config
-      uses: actions/checkout@v2
-      with:
-        token: ${{ secrets.SECRET_TOKEN}}
-        repository: KIMnJANG/deploy-pipeline
-        path: deploy-pipeline
-        
-    - name: set hyper parameter
-      run: |
-        cd deploy-pipeline/kustomize/overlays/dev
-        kustomize edit set image ghcr.io/kimnjang/mnist_classifier_training:${{ env.TAG }}
-        echo $(jq '.[].value = ["--deploy", "True", "--optimizer", "${{ github.event.inputs.optimizer }}", "--units", "${{ github.event.inputs.units }}"]' training-job-patch.json) > training-job-patch.json
-        git config --global user.name ${{ github.repository_owner }}
-        git config --global user.email "iam@junil.kim"
-        git commit -am 'Publish new version ${GITHUB_SHA} to dev'
-        git push || echo 'no changes'
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.ACCESS_TOKEN }}
+          ref: main
+      # tag v0.0.1 -> RELEASE_VERSION = 0.0.1
+      - name: Set env
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
+      # 0.0.1 -> 001
+      - name: Find Suffix string
+        run: |
+          echo "SUFFIX=${VERSION//./}" >> $GITHUB_ENV
+        env:
+          VERSION: ${{ env.RELEASE_VERSION }}
+
+      - name: Set up docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to Github Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.ACCESS_TOKEN }}
+
+      # Ssuwani -> ssuwani for ghcr naming rule
+      - name: set lower case owner name
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+          OWNER: "${{ github.repository_owner }}"
+
+      - name: Experiment Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: dockerfile
+          push: true
+          tags: ghcr.io/${{ env.OWNER_LC}}/train-mnist:${{ env.RELEASE_VERSION}}
+
+      # - name: run Experiment Pipeline
+      #   run: |
+      #     curl -u ":$TOKEN" \
+      #       -X POST \
+      #       -H "Accept: application/vnd.github.v3+json" \
+      #       https://api.github.com/repos/kimnjang/experiment-pipeline/actions/workflows/cd.yml/dispatches \
+      #       -d '{"ref": "master", 
+      #           "inputs": {
+      #               "RELEASE_VERSION": "${{env.RELEASE_VERSION}}"}
+      #       }'
