@@ -1,11 +1,7 @@
-from json import load
 import tensorflow as tf
 import argparse
-import numpy as np
-import dvc.api
 import os
 from tensorflow.python.lib.io import file_io
-import datetime
 from utils import request_deploy_api
 
 
@@ -13,25 +9,11 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--units", default=64, type=float)
     parser.add_argument("--optimizer", default="adam", type=str)
-    # parser.add_argument('--learning_rate', default=0.01, type=float)
-    # parser.add_argument('--dropout', default=0.2, type=float)
-    # parser.add_argument('--epochs', default=5, type=int)
     parser.add_argument("--deploy", default=False, type=bool)
     return parser.parse_args()
 
 
 def load_data():
-    # with dvc.api.open(
-    #     'data/dataset.npz',
-    #     repo='https://github.com/ssuwani/dvc-tutorial',
-    #     mode="rb"
-    # ) as fd:
-    #     dataset = np.load(fd)
-    #     train_x = dataset["train_x"]
-    #     train_y = dataset["train_y"]
-    #     test_x = dataset["test_x"]
-    #     test_y = dataset["test_y"]
-    # return (train_x, train_y), (test_x, test_y)
     return tf.keras.datasets.mnist.load_data()
 
 
@@ -64,7 +46,7 @@ def train():
     train_x, test_x = normalize(train_x), normalize(test_x)
 
     print("Training...")
-    training_history = model.fit(train_x, train_y, validation_split=0.2, epochs=10)
+    model.fit(train_x, train_y, validation_split=0.2, epochs=10)
 
     loss, acc = model.evaluate(test_x, test_y)
     print(f"model test-loss={loss:.4f} test-acc={acc:.4f}")
@@ -91,10 +73,6 @@ def deploy_model(model, args):
 
     request_deploy_api(gs_path)
     print(f"Trigger Deploy success!")
-
-    # slack_url = os.getenv("WEB_HOOK_URL")
-    # if slack_url != None:
-    #     send_message_to_slack(slack_url, acc, loss, training_time, gs_path)
 
 
 if __name__ == "__main__":
