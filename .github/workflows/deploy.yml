@@ -9,13 +9,13 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      TOKEN: ${{ secrets.SECRET_TOKEN }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.ACCESS_TOKEN }}
+          token: ${{ secrets.SECRET_TOKEN }}
           ref: main
       # tag v0.0.1 -> RELEASE_VERSION = 0.0.1
       - name: Set env
@@ -36,7 +36,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.ACCESS_TOKEN }}
+          password: ${{ secrets.SECRET_TOKEN }}
 
       # Ssuwani -> ssuwani for ghcr naming rule
       - name: set lower case owner name
