@@ -1,84 +1,24 @@
-from json import load
-from typing import get_args
 import tensorflow as tf
-import argparse
-import numpy as np
-import dvc.api
-import os
+from tensorflow.keras import layers, Input, Model
 from tensorflow.python.lib.io import file_io
-import datetime
-from utils import request_deploy_api
+import argparse
+import os
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--units", default=64, type=float)
-    parser.add_argument("--optimizer", default="adam", type=str)
-    # parser.add_argument('--learning_rate', default=0.01, type=float)
-    # parser.add_argument('--dropout', default=0.2, type=float)
-    # parser.add_argument('--epochs', default=5, type=int)
-    parser.add_argument("--deploy", default=False, type=bool)
-    return parser.parse_args()
+
+    parser.add_argument("--hidden_units", type=int, required=True)
+    parser.add_argument("--optimizer", type=str, required=True)
+    parser.add_argument("--save_model_bucket_name", type=str, default=False)
+
+    args = parser.parse_args()
+    return args
 
 
-def load_data():
-    # with dvc.api.open(
-    #     'data/dataset.npz',
-    #     repo='https://github.com/ssuwani/dvc-tutorial',
-    #     mode="rb"
-    # ) as fd:
-    #     dataset = np.load(fd)
-    #     train_x = dataset["train_x"]
-    #     train_y = dataset["train_y"]
-    #     test_x = dataset["test_x"]
-    #     test_y = dataset["test_y"]
-    # return (train_x, train_y), (test_x, test_y)
-    return tf.keras.datasets.mnist.load_data()
-
-
-def normalize(data):
-    return data / 225.0
-
-
-def get_model(args):
-    model = tf.keras.models.Sequential(
-        [
-            tf.keras.layers.Flatten(input_shape=(28, 28)),
-            tf.keras.layers.Dense(args.units, activation="relu"),
-            tf.keras.layers.Dense(10, activation="softmax"),
-        ]
-    )
-    model.compile(
-        optimizer=args.optimizer,
-        loss="sparse_categorical_crossentropy",
-        metrics=["accuracy"],
-    )
-    return model
-
-
-def train():
-
-    args = get_args()
-    model = get_model(args)
-
-    (train_x, train_y), (test_x, test_y) = load_data()
-    train_x, test_x = normalize(train_x), normalize(test_x)
-
-    print("Training...")
-    training_history = model.fit(train_x, train_y, validation_split=0.2, epochs=10)
-
-    if args.deploy:
-        deploy_model(model, args)
-
-
-def arg_to_str(args):
-    return "_".join([f"{x[0]}_{x[1]}" for x in vars(args).items()][:-1])
-
-
-def deploy_model(model, args):
-    gcp_bucket = os.getenv("GCS_BUCKET")
-    bucket_path = os.path.join(gcp_bucket, "mnist")
-    save_path = f"{arg_to_str(args)}.h5"
+def save_model(model, hidden_units, optimizer, acc, bucket_name):
+    bucket_path = os.path.join(bucket_name, "mnist")
+    save_path = f"units_{hidden_units}_opt_{optimizer}.h5"
     print(f"saving model {save_path}")
     model.save(save_path)
 
@@ -88,13 +28,40 @@ def deploy_model(model, args):
             output_file.write(input_file.read())
     print(f"model save success!")
 
-    request_deploy_api(gs_path)
-    print(f"Trigger Deploy success!")
+    # request_deploy_api(gs_path)
+    # print(f"Trigger Deploy success!")
 
-    # slack_url = os.getenv("WEB_HOOK_URL")
-    # if slack_url != None:
-    #     send_message_to_slack(slack_url, acc, loss, training_time, gs_path)
+
+def train(hidden_units, optimizer, bucket_name):
+    (train_x, train_y), (test_x, test_y) = tf.keras.datasets.mnist.load_data()
+    train_x = train_x / 255.0
+    test_x = test_x / 255.0
+
+    inputs = Input(shape=(28, 28))
+    x = layers.Flatten()(inputs)
+    x = layers.Dense(hidden_units, activation="relu")(x)
+    outputs = layers.Dense(10, activation="softmax")(x)
+
+    model = Model(inputs, outputs)
+
+    optimizer = tf.keras.optimizers.get(optimizer)
+
+    model.compile(
+        optimizer=optimizer, loss="sparse_categorical_crossentropy", metrics=["acc"]
+    )
+    model.fit(train_x, train_y, epochs=3, validation_split=0.2)
+    loss, acc = model.evaluate(test_x, test_y)
+    print(f"model test-loss={loss:.4f} test-acc={acc:.4f}")
+
+    if bucket_name:
+        save_model(model, hidden_units, optimizer, acc, bucket_name)
+
+    if save_model:
+        tf.saved_model.save(
+            model, f"./saved_model/mnist-{hidden_units}-{optimizer}-{acc*100}"
+        )
 
 
 if __name__ == "__main__":
-    train()
+    args = get_args()
+    train(args.hidden_units, args.optimizer, args.save_model_bucket_name)
